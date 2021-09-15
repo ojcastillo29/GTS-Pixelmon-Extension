@@ -159,8 +159,10 @@ public class ReforgedEntry extends SpongeEntry<ReforgedPokemon> implements Price
         // Check party size. Ensure we aren't less than 1 because who knows whether Reforged or another plugin
         // will break something
         if(party.getTeam().size() <= 1) {
+            if (!pokemon.getOrCreate().isEgg()) {
             user.ifPresent(player -> player.sendMessages(parser.parse(reforgedLang.get(ReforgedLangConfigKeys.ERROR_LAST_ABLE_MEMBER))));
             return false;
+            }
         }
 
         party.retrieveAll();
