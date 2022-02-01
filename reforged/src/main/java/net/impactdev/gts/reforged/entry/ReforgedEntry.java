@@ -5,6 +5,7 @@ import com.pixelmonmod.pixelmon.api.pokemon.PokemonSpec;
 import com.pixelmonmod.pixelmon.api.storage.PCStorage;
 import com.pixelmonmod.pixelmon.entities.pixelmon.stats.extraStats.MiniorStats;
 import net.impactdev.gts.api.listings.prices.PriceControlled;
+import net.impactdev.gts.api.util.PrettyPrinter;
 import net.impactdev.gts.api.util.TriFunction;
 import net.impactdev.gts.common.config.ConfigKeys;
 import net.impactdev.gts.common.config.MsgConfigKeys;
@@ -36,6 +37,7 @@ import net.impactdev.gts.reforged.GTSSpongeReforgedPlugin;
 import net.impactdev.gts.reforged.config.ReforgedLangConfigKeys;
 import net.impactdev.gts.reforged.converter.JObjectConverter;
 import net.impactdev.gts.sponge.listings.makeup.SpongeDisplay;
+import net.impactdev.pixelmonbridge.details.SpecKey;
 import net.impactdev.pixelmonbridge.details.SpecKeys;
 import net.impactdev.pixelmonbridge.reforged.ReforgedPokemon;
 import net.kyori.adventure.text.Component;
@@ -47,6 +49,7 @@ import org.spongepowered.api.entity.living.player.Player;
 import org.spongepowered.api.item.inventory.ItemStack;
 import org.spongepowered.api.text.Text;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Optional;
@@ -84,7 +87,7 @@ public class ReforgedEntry extends SpongeEntry<ReforgedPokemon> implements Price
     }
 
     @Override
-    public Display<ItemStack> getDisplay(UUID viewer, Listing listing) {
+    public Display<ItemStack> getDisplay(UUID viewer) {
         if(this.display == null) {
             final MessageService<Text> service = Impactor.getInstance().getRegistry().get(MessageService.class);
 
@@ -135,8 +138,14 @@ public class ReforgedEntry extends SpongeEntry<ReforgedPokemon> implements Price
             user.ifPresent(player -> player.sendMessages(parser.parse(reforgedLang.get(ReforgedLangConfigKeys.ERROR_IN_BATTLE))));
             return false;
         }
+
+        // Attempt to handle a case where certain UTF-8 character encodings cause invisible nicknames/database issues
+        Optional<String> nickname = this.pokemon.get(SpecKeys.NICKNAME);
+        if(nickname.isPresent()) {
+            byte[] bytes = nickname.get().getBytes(StandardCharsets.UTF_8);
+        }
         
-        if (pokemon.getOrCreate().isEgg()) {
+        if (this.pokemon.getOrCreate().isEgg()) {
              if (!GTSSpongeReforgedPlugin.getInstance().getConfiguration().get(ReforgedConfigKeys.ALLOW_EGG_BASE)) {
                  user.ifPresent( player -> player.sendMessage(parser.parse(reforgedLang.get(ReforgedLangConfigKeys.ERROR_ISEGG))));
                  return false;
@@ -216,7 +225,8 @@ public class ReforgedEntry extends SpongeEntry<ReforgedPokemon> implements Price
 
     private ItemStack getPicture(Pokemon pokemon) {
         Calendar calendar = Calendar.getInstance();
-        boolean aprilFools = calendar.get(Calendar.MONTH) == Calendar.APRIL && calendar.get(Calendar.DAY_OF_MONTH) == 1;
+        boolean aprilFools = (calendar.get(Calendar.MONTH) == Calendar.APRIL || calendar.get(Calendar.MONTH) == Calendar.JULY)
+                && calendar.get(Calendar.DAY_OF_MONTH) == 1;
 
         if(pokemon.isEgg()) {
             net.minecraft.item.ItemStack item = new net.minecraft.item.ItemStack(PixelmonItems.itemPixelmonSprite);
